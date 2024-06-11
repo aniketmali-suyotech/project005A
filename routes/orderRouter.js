@@ -61,7 +61,7 @@ async function getAllOrdersHandler (req, res) {
       .limit(limit)
 
     if (!data || data.length === 0) {
-      return res.status(404).json({ error: 'Data not found' })
+      errorResponse(res, 400, 'Data not found')
     }
 
     successResponse(res, 'success', data)
@@ -241,17 +241,20 @@ async function getDashData (req, res) {
     const client = await customerModel.find().count()
     const karigar = await karigarModel.find().count()
 
-    let orders = await orderModel.find({})
+    const data1 = await orderModel.find({})
 
-    const customerfollowupdata = (orders, remainingDays) => {
+    console.log('data', data1)
+    const customerfollowupdata = async (data1, remainingDays) => {
       const currentDate = new Date()
-      return orders.filter(order => {
-        const deliveryDate = new Date(order.customerDeliveryDate)
+      return data1.filter(order => {
+        const deliveryDate = new Date(order.customer_delivery_date)
         const differenceMs = deliveryDate - currentDate
         const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
         return differenceDays <= remainingDays
       })
     }
+
+    const customerfollow = await customerfollowupdata(data1, 1)
 
     const data = {
       newOrder,
@@ -260,7 +263,7 @@ async function getDashData (req, res) {
       delivered,
       client,
       karigar,
-      customerfollowupdata
+      customerfollow
     }
 
     res.json(data)
