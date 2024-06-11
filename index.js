@@ -9,7 +9,7 @@ import karigarRouter from './routes/karigarRouter.js'
 import productRouter from './routes/productRouter.js'
 import userRouter from './routes/userRouter.js'
 import authRouter from './routes/authRouter.js'
-import { AddSuperAdmin } from './helpers/helperFunction.js'
+import { AddSuperAdmin, authMiddleware } from './helpers/helperFunction.js'
 import path from 'path'
 
 
@@ -28,7 +28,7 @@ app.use('/api/orders', orderRouter)
 app.use('/api/clients', customerRouter)
 app.use('/api/karigars', karigarRouter)
 app.use('/api/products', productRouter)
-app.use('/api/users',  userRouter)
+app.use('/api/users', authMiddleware,  userRouter)
 app.use('/api/auth', authRouter)
 
 //not found

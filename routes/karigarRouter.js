@@ -23,14 +23,14 @@ async function getAllKarigarHandler (req, res) {
 
 async function addKarigarHandler (req, res) {
   try {
-    const { Name, Mob, Address, City, PinCode } = req.body
+    const { Name, Mob, CompName, Address, City, PinCode } = req.body
 
-    if ((!Name, !Mob, !Address, !City, !PinCode)) {
+    if ((!Name, !Mob, !CompName, !Address, !City, !PinCode)) {
       const message = 'addorder - some params missing'
       errorResponse(res, 400, message)
       return
     }
-    const params = { Name, Mob, Address, City, PinCode }
+    const params = { Name, Mob, CompName, Address, City, PinCode }
     await karigarModel.create(params)
     successResponse(res, 'success added', params)
   } catch (error) {
@@ -47,6 +47,7 @@ async function updateKarigarHandler (req, res) {
     if (
       !updateddata.Name ||
       !updateddata.Mob ||
+      !updateddata.CompName ||
       !updateddata.Address ||
       !updateddata.City ||
       !updateddata.PinCode
@@ -63,7 +64,7 @@ async function updateKarigarHandler (req, res) {
 }
 
 async function deletekarigarHandler (req, res) {
- const { id } = req.params
+  const { id } = req.params
 
   const data = await karigarModel.findByIdAndDelete(id)
   if (!data) {

@@ -1,10 +1,6 @@
 import { Schema, model } from 'mongoose'
 
 const clientSchema = new Schema({
-  order_id: {
-    type: Schema.Types.ObjectId,
-    ref: 'orders'
-  },
   Name: String,
   Mob: String,
   Address: String,

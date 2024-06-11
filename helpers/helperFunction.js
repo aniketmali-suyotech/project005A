@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import bcrypt, { compare } from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
+import { errorResponse } from './serverResponse.js'
 
 //add super admin
 
@@ -18,7 +19,6 @@ export async function AddSuperAdmin () {
     await userModel.create({
       firstname: 'admin',
       lastname: 'admin',
-      role: 'admin',
       email: email,
       mobile: '90876545',
       password: bcryptPassword('1234')
@@ -117,4 +117,63 @@ export async function GetOrderNumber () {
   return `${prefix}${serialNumber}`
 }
 
+// auth middleware
+/**
+ *
+ * @param {import("express").Request} req
+ * @param {Response} res
+ * @param {import("express").Nextexport function} next
+ */
+export function authMiddleware (req, res, next) {
+  const authHeader =
+    req.headers.Authorization || req.headers.authorization || req.query.token
 
+  if (!authHeader) {
+    errorResponse(res, 401, 'token not found')
+    return
+  }
+  const encoded_token = authHeader.split(' ')[1]
+
+  if (!encoded_token) return res.status(401).json('Unauthorize user')
+
+  try {
+    const decoded = jwt.verify(encoded_token, secrectKey)
+
+    if (!decoded.role || !decoded.email) {
+      console.log('NOt authorized')
+      return res.status(401).json('Unauthorize user')
+    }
+
+    res.locals['id'] = decoded.id
+    res.locals['role'] = decoded.role
+    res.locals['email'] = decoded.email
+    next()
+  } catch (error) {
+    console.log(error.message)
+    errorResponse(res, 401, 'user not authorized')
+  }
+}
+
+//Remaining days calculating.....
+
+function getRemainingDays (customerDeliveryDate) {
+  const deliveryDate = new Date(customerDeliveryDate)
+  const currentDate = new Date()
+  const differenceMs = deliveryDate - currentDate
+  const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+  return differenceDays
+}
+
+// Function to filter orders based on remaining days
+
+/**
+ *
+ * @param {*} data
+ * @param {*} remainingDays
+ * @returns
+ */
+export function filterOrdersByRemainingDays (orders, remainingDays) {
+  return orders.filter(
+    order => getRemainingDays(order.customer_delivery_date) <= remainingDays
+  )
+}

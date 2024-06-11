@@ -1,12 +1,9 @@
-import { Schema, Types, model } from 'mongoose'
+import { Schema, model } from 'mongoose'
 
 const karigarSchema = new Schema({
-  order_id: {
-    type: Schema.Types.ObjectId,
-    ref: 'orders'
-  },
   Name: String,
   Mob: String,
+  CompName : String,
   Address: String,
   City: String,
   PinCode: String

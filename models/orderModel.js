@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose'
 
 const orderSchema = new Schema({
-  CustomerId: String,
+  CustomerName: String,
   OrderNumber: {
     type: String,
     unique: true
@@ -13,33 +13,33 @@ const orderSchema = new Schema({
   ProductId: String,
   Specification: String,
   Quantity: String,
-  karigarid: {
+  karigarName: {
     type: String,
-    default: ''
+    default: 'not set'
   },
   karigar_delivery_date: {
     type: String,
-    default: ''
+    default: 'not set'
   },
   customer_delivery_date: {
     type: String,
-    default: ''
+    default: 'not set'
   },
   order_created_date: {
     type: String,
-    default: ''
+    default: 'not set'
   },
   karigar_status: {
     type: String,
-    default: ''
+    default: 'not set'
   },
   customer_status: {
     type: String,
-    default: ''
+    default: 'not set'
   },
   final_status: {
     type: String,
-    default: ''
+    default: 'new-order'
   },
   images: [
     {

@@ -5,10 +5,13 @@ import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import { GetOrderNumber } from '../helpers/helperFunction.js'
+import customerModel from '../models/customerModel.js'
+import { filterOrdersByRemainingDays } from '../helpers/helperFunction.js'
+import karigarModel from '../models/karigarModel.js'
 
 const orderRouter = Router()
-
-orderRouter.get('/', getAllOrdersHandler)
+orderRouter.get('/dash', getDashData)
+orderRouter.post('/', getAllOrdersHandler)
 orderRouter.post('/create', addOrderHandler)
 orderRouter.post('/asign/:id', asignkarigarHandler)
 orderRouter.post('/delete/:id', deleteOrderHandler)
@@ -16,121 +19,53 @@ orderRouter.post('/update/:id', updateOrderHandler)
 
 export default orderRouter
 
-// //get all client
-// async function getclientHandler(req, res) {
-//   try {
-//       const { pageno, sortby } = req.body;
-
-//       const pageNo = parseInt(pageno) || 0;
-//       const sortBy = Object.keys(sortby).length === 0 ? { _id: -1 } : sortby;
-
-//       const limit = 100;
-//       const skip = pageNo * limit;
-//       const data = await userModel
-//           .find({ role: "user" })
-//           .select({ __v: 0, password: 0, tokenotp: 0 })
-//           .sort(sortBy)
-//           .skip(skip)
-//           .limit(limit);
-
-//       if (!data || data.length === 0) {
-//           errorResponse(res, 400, "data not found");
-//           return;
-//       }
-//       successResponse(res, "success", data);
-//   } catch (error) {
-//       console.log(error);
-//       errorResponse(res, 500, "internal server error");
-//   }
-// }
-
 async function getAllOrdersHandler (req, res) {
   try {
-    const orders = await orderModel.aggregate([
-      {
-        $lookup: {
-          from: 'karigars',
-          localField: 'order_id',
-          foreignField: 'karigarid',
-          as: 'karigars'
-        }
-      },
-      {
-        $unwind: '$karigars'
-      },
-      {
-        $lookup: {
-          from: 'customers',
-          localField: 'order_id',
-          foreignField: 'karigarid',
-          as: 'customers'
-        }
-      },
-      {
-        $unwind: '$customers'
-      },
-      {
-        $group: {
-          _id: '$OrderNumber',
-          data: { $first: '$$ROOT' }
-        }
-      },
-      {
-        $replaceRoot: { newRoot: '$data' }
-      },
-      {
-        $project: {
-          _id: 1,
-          karigarid: {
-            $cond: {
-              if: { $eq: ['$karigarid', ''] }, // Check if karigarid is empty
-              then: '',
-              else: '$karigars.Name'
-            }
-          },
-          CustomerId: '$customers.Name',
-          OrderNumber: '$OrderNumber',
-          OrderDate: 1,
-          Purity: 1,
-          Weight: 1,
-          Size: 1,
-          ProductId: 1,
-          Specification: 1,
-          Quantity: 1,
-          karigar_delivery_date: 1,
-          customer_delivery_date: 1,
-          order_created_date: 1,
-          karigar_status: 1,
-          customer_status: 1,
-          final_status: 1,
-          images: 1
-        }
-      }
-    ])
+    const { pageno, sortby, filterby = {}, search = '' } = req.body
+    const pageNo = parseInt(pageno) || 0
 
-    const { customer_status, karigar_status, final_status } = req.query
-    console.log('request query===', req.query)
+    const limit = 100
+    const skip = pageNo * limit
 
-    if (customer_status) {
-      const filteredOrders = orders.filter(
-        c => c.customer_status === customer_status
-      )
-      return successResponse(res, 'success', filteredOrders)
+    let query = {}
+
+    if (filterby.final_status) {
+      query.final_status = filterby.final_status
     }
 
-    if (karigar_status) {
-      const filteredOrders = orders.filter(
-        c => c.karigar_status === karigar_status
-      )
-      return successResponse(res, 'success', filteredOrders)
+    if (filterby.customer_status) {
+      query.customer_status = filterby.customer_status
     }
 
-    if (final_status) {
-      const filteredOrders = orders.filter(c => c.final_status === final_status)
-      return successResponse(res, 'success', filteredOrders)
+    if (filterby.karigar_status) {
+      query.karigar_status = filterby.karigar_status
     }
 
-    successResponse(res, 'success', orders)
+    if (search) {
+      const searchRegex = new RegExp(search, 'i')
+      query.$or = [
+        { OrderNumber: { $regex: searchRegex } },
+        { karigarName: { $regex: searchRegex } },
+        { CustomerName: { $regex: searchRegex } }
+      ]
+    }
+    const sortBy =
+      sortby && typeof sortby === 'object' && Object.keys(sortby).length === 0
+        ? { OrderNumber: 1 }
+        : sortby
+
+    const data = await orderModel
+      .find(query)
+      .select({ __v: 0, password: 0, tokenotp: 0 })
+      .sort(sortBy)
+      .skip(skip)
+      .limit(limit)
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Data not found' })
+    }
+
+    successResponse(res, 'success', data)
   } catch (error) {
     console.log('error', error)
     errorResponse(res, 500, 'internal server error')
@@ -175,21 +110,22 @@ async function addOrderHandler (req, res) {
 
         console.log('images==', images)
         const {
-          CustomerId,
+          CustomerName,
           OrderDate,
           Purity,
           Weight,
           Size,
           ProductId,
           Specification,
-          Quantity
+          Quantity,
+          customer_delivery_date
         } = req.body
 
         try {
           const OrderNumber = await GetOrderNumber()
           const data = await orderModel.create({
             OrderNumber,
-            CustomerId,
+            CustomerName,
             OrderDate,
             Purity,
             Weight,
@@ -197,6 +133,7 @@ async function addOrderHandler (req, res) {
             ProductId,
             Specification,
             Quantity,
+            customer_delivery_date,
             images
           })
 
@@ -218,9 +155,8 @@ async function asignkarigarHandler (req, res) {
     const updateData = req.body
     const options = { new: true }
     if (
-      !updateData.karigarid ||
+      !updateData.karigarName ||
       !updateData.karigar_delivery_date ||
-      !updateData.customer_delivery_date ||
       !updateData.order_created_date ||
       !updateData.karigar_status ||
       !updateData.customer_status ||
@@ -247,7 +183,7 @@ async function updateOrderHandler (req, res) {
     const updateData = req.body
     const options = { new: true }
     if (
-      !updateData.CustomerId ||
+      !updateData.CustomerName ||
       !updateData.OrderNumber ||
       !updateData.OrderDate ||
       !updateData.Purity ||
@@ -256,7 +192,7 @@ async function updateOrderHandler (req, res) {
       !updateData.ProductId ||
       !updateData.Specification ||
       !updateData.Quantity ||
-      !updateData.karigarid ||
+      !updateData.karigarName ||
       !updateData.karigar_delivery_date ||
       !updateData.customer_delivery_date ||
       !updateData.order_created_date ||
@@ -289,16 +225,36 @@ async function deleteOrderHandler (req, res) {
   successResponse(res, 'Deleted Successfully', data)
 }
 
-async function karigarfollowup (req, res) {
+async function getDashData (req, res) {
   try {
-    const data = await orderModel.find({})
-    if (!data) {
-      errorResponse(res, 500, 'orders not found at karigarfollowup')
-      return
+    const orders = await orderModel.find({})
+    const newOrder = await orderModel
+      .find({ final_status: 'new-order' })
+      .count()
+    const inProcess = await orderModel
+      .find({ final_status: 'inprocess' })
+      .count()
+    const completed = await orderModel
+      .find({ final_status: 'completed' })
+      .count()
+    const delivered = await orderModel
+      .find({ final_status: 'delivered' })
+      .count()
+    const client = await customerModel.find().count()
+    const karigar = await karigarModel.find().count()
+
+    const data = {
+      newOrder,
+      inProcess,
+      completed,
+      delivered,
+      client,
+      karigar
     }
-    successResponse(res, 'success', data)
+
+    res.json(data)
   } catch (error) {
-    console.log(error)
-    errorResponse(res, 500, 'internal error')
+    console.log('error', error)
+    res.status(500).json({ error: 'Internal Server Error' })
   }
 }
