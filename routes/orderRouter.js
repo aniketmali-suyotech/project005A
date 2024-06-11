@@ -266,9 +266,9 @@ async function getDashData (req, res) {
       customerfollow
     }
 
-    res.json(data)
+    successResponse(res, 'date get successfully', data)
   } catch (error) {
     console.log('error', error)
-    res.status(500).json({ error: 'Internal Server Error' })
+    errorResponse(res, 500, 'internal server error')
   }
 }
