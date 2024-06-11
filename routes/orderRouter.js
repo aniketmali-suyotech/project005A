@@ -62,6 +62,7 @@ async function getAllOrdersHandler (req, res) {
 
     if (!data || data.length === 0) {
       errorResponse(res, 400, 'Data not found')
+      return
     }
 
     successResponse(res, 'success', data)
@@ -243,18 +244,48 @@ async function getDashData (req, res) {
 
     const data1 = await orderModel.find({})
 
-    console.log('data', data1)
-    const customerfollowupdata = async (data1, remainingDays) => {
+    function getRemainingDays (customer_delivery_date) {
+      const parts = customer_delivery_date.split('-')
+      const day = parseInt(parts[0], 10)
+      const month = parseInt(parts[1], 10) - 1
+      const year = parseInt(parts[2], 10)
+
+      const deliveryDate = new Date(year, month, day)
       const currentDate = new Date()
-      return data1.filter(order => {
-        const deliveryDate = new Date(order.customer_delivery_date)
-        const differenceMs = deliveryDate - currentDate
-        const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-        return differenceDays <= remainingDays
-      })
+      const differenceMs = deliveryDate - currentDate
+      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+      return differenceDays
+    }
+    
+    function filterOrdersByRemainingDays (orders, remainingDays) {
+      const value = orders.filter(
+        order => getRemainingDays(order.customer_delivery_date) <= remainingDays
+      )
+      return value.length
+    }
+    const customerfollowup = filterOrdersByRemainingDays(data1, 1)
+
+   
+    function getRemainingDays2 (karigar_delivery_date) {
+      const parts = karigar_delivery_date.split('-')
+      const day = parseInt(parts[0], 10)
+      const month = parseInt(parts[1], 10) - 1
+      const year = parseInt(parts[2], 10)
+
+      const deliveryDate = new Date(year, month, day)
+      const currentDate = new Date()
+      const differenceMs = deliveryDate - currentDate
+      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+      return differenceDays
     }
 
-    const customerfollow = await customerfollowupdata(data1, 1)
+    function filterOrdersByRemainingDays2 (orders, remainingDays) {
+      const value = orders.filter(
+        order => getRemainingDays2(order.karigar_delivery_date) <= remainingDays
+      )
+      return value.length
+    }
+    const karigarfollowup = filterOrdersByRemainingDays2(data1, 1)
 
     const data = {
       newOrder,
@@ -263,7 +294,8 @@ async function getDashData (req, res) {
       delivered,
       client,
       karigar,
-      customerfollow
+      customerfollowup,
+      karigarfollowup
     }
 
     successResponse(res, 'date get successfully', data)

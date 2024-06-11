@@ -155,5 +155,19 @@ export function authMiddleware (req, res, next) {
 }
 
 
+export function getRemainingDays (customer_delivery_date) {
+  const parts = customer_delivery_date.split('-')
+  const day = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10) - 1
+  const year = parseInt(parts[2], 10)
+
+  const deliveryDate = new Date(year, month, day)
+  const currentDate = new Date()
+  console.log('deliverydata,', deliveryDate)
+  console.log('currentDate', currentDate)
+  const differenceMs = deliveryDate - currentDate
+  const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+  return differenceDays
+}
 
 
