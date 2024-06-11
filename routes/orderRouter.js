@@ -6,7 +6,6 @@ import fs from 'fs'
 import path from 'path'
 import { GetOrderNumber } from '../helpers/helperFunction.js'
 import customerModel from '../models/customerModel.js'
-import { filterOrdersByRemainingDays } from '../helpers/helperFunction.js'
 import karigarModel from '../models/karigarModel.js'
 
 const orderRouter = Router()
@@ -115,7 +114,7 @@ async function addOrderHandler (req, res) {
           Purity,
           Weight,
           Size,
-          ProductId,
+          ProductName,
           Specification,
           Quantity,
           customer_delivery_date
@@ -130,7 +129,7 @@ async function addOrderHandler (req, res) {
             Purity,
             Weight,
             Size,
-            ProductId,
+            ProductName,
             Specification,
             Quantity,
             customer_delivery_date,
@@ -189,7 +188,7 @@ async function updateOrderHandler (req, res) {
       !updateData.Purity ||
       !updateData.Weight ||
       !updateData.Size ||
-      !updateData.ProductId ||
+      !updateData.ProductName ||
       !updateData.Specification ||
       !updateData.Quantity ||
       !updateData.karigarName ||
@@ -227,7 +226,6 @@ async function deleteOrderHandler (req, res) {
 
 async function getDashData (req, res) {
   try {
-    const orders = await orderModel.find({})
     const newOrder = await orderModel
       .find({ final_status: 'new-order' })
       .count()
@@ -243,13 +241,26 @@ async function getDashData (req, res) {
     const client = await customerModel.find().count()
     const karigar = await karigarModel.find().count()
 
+    let orders = await orderModel.find({})
+
+    const customerfollowupdata = (orders, remainingDays) => {
+      const currentDate = new Date()
+      return orders.filter(order => {
+        const deliveryDate = new Date(order.customerDeliveryDate)
+        const differenceMs = deliveryDate - currentDate
+        const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+        return differenceDays <= remainingDays
+      })
+    }
+
     const data = {
       newOrder,
       inProcess,
       completed,
       delivered,
       client,
-      karigar
+      karigar,
+      customerfollowupdata
     }
 
     res.json(data)

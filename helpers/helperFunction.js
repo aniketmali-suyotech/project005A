@@ -154,26 +154,6 @@ export function authMiddleware (req, res, next) {
   }
 }
 
-//Remaining days calculating.....
 
-function getRemainingDays (customerDeliveryDate) {
-  const deliveryDate = new Date(customerDeliveryDate)
-  const currentDate = new Date()
-  const differenceMs = deliveryDate - currentDate
-  const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-  return differenceDays
-}
 
-// Function to filter orders based on remaining days
 
-/**
- *
- * @param {*} data
- * @param {*} remainingDays
- * @returns
- */
-export function filterOrdersByRemainingDays (orders, remainingDays) {
-  return orders.filter(
-    order => getRemainingDays(order.customer_delivery_date) <= remainingDays
-  )
-}

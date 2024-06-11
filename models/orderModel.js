@@ -10,7 +10,7 @@ const orderSchema = new Schema({
   Purity: String,
   Weight: String,
   Size: String,
-  ProductId: String,
+  ProductName: String,
   Specification: String,
   Quantity: String,
   karigarName: {
