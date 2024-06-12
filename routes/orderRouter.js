@@ -10,7 +10,8 @@ import karigarModel from '../models/karigarModel.js'
 
 const orderRouter = Router()
 orderRouter.get('/dash', getDashData)
-orderRouter.get('/followup', customerfollowup)
+orderRouter.get('/cfollowup', customerfollowup)
+orderRouter.get('/kfollowup', karigarfollowup)
 orderRouter.get('/status', getstatus)
 orderRouter.post('/', getAllOrdersHandler)
 orderRouter.post('/create', addOrderHandler)
@@ -84,8 +85,11 @@ async function addOrderHandler (req, res) {
         }
         cb(null, filePath)
       },
-      filename: (req, file, cb) => {
-        const id = Math.floor(Math.random() * 900000) + 100000
+      filename: async(req, file, cb) => {
+        
+        const OrderNumber = await GetOrderNumber()
+        const id= OrderNumber
+        // const id = Math.floor(Math.random() * 900000) + 100000
         const ext = path.extname(file.originalname)
         cb(null, id + ext)
       },
@@ -245,17 +249,22 @@ async function getDashData (req, res) {
 
     // // //customer followup filter date...............
     const data1 = await orderModel.find({})
-    function getRemainingDays (customer_delivery_date) {
-      const parts = customer_delivery_date.split('-')
-      const day = parseInt(parts[0], 10)
-      const month = parseInt(parts[1], 10) - 1
-      const year = parseInt(parts[2], 10)
-
-      const deliveryDate = new Date(year, month, day)
-      const currentDate = new Date()
-      const differenceMs = deliveryDate - currentDate
-      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-      return differenceDays
+    function getRemainingDays(customer_delivery_date) {
+      const parts = customer_delivery_date.split('-');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+    
+      const deliveryDate = new Date(year, month, day);
+      const currentDate = new Date();
+      const differenceMs = deliveryDate - currentDate;
+      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24));
+    
+      if (differenceDays > 0) {
+        return differenceDays;
+      } else {
+        return "Delivery date has already passed";
+      }
     }
 
     function filterOrdersByRemainingDays (orders, remainingDays) {
@@ -267,17 +276,22 @@ async function getDashData (req, res) {
     const customerfollowup = filterOrdersByRemainingDays(data1, 1)
 
     // // //karigar_followup filter date...............
-    function getRemainingDays2 (karigar_delivery_date) {
-      const parts = karigar_delivery_date.split('-')
-      const day = parseInt(parts[0], 10)
-      const month = parseInt(parts[1], 10) - 1
-      const year = parseInt(parts[2], 10)
-
-      const deliveryDate = new Date(year, month, day)
-      const currentDate = new Date()
-      const differenceMs = deliveryDate - currentDate
-      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-      return differenceDays
+    function getRemainingDays2(karigar_delivery_date) {
+      const parts = karigar_delivery_date.split('-');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+    
+      const deliveryDate = new Date(year, month, day);
+      const currentDate = new Date();
+      const differenceMs = deliveryDate - currentDate;
+      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24));
+    
+      if (differenceDays > 0) {
+        return differenceDays;
+      } else {
+        return "Delivery date has already passed";
+      }
     }
 
     function filterOrdersByRemainingDays2 (orders, remainingDays) {
@@ -325,20 +339,28 @@ async function getstatus (req, res) {
   }
 }
 
+
+// //  customerFollowup..............................................................
+
 async function customerfollowup (req, res) {
   try {
     const data1 = await orderModel.find({})
-    function getRemainingDays (customer_delivery_date) {
-      const parts = customer_delivery_date.split('-')
-      const day = parseInt(parts[0], 10)
-      const month = parseInt(parts[1], 10) - 1
-      const year = parseInt(parts[2], 10)
-
-      const deliveryDate = new Date(year, month, day)
-      const currentDate = new Date()
-      const differenceMs = deliveryDate - currentDate
-      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-      return differenceDays
+    function getRemainingDays(customer_delivery_date) {
+      const parts = customer_delivery_date.split('-');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+    
+      const deliveryDate = new Date(year, month, day);
+      const currentDate = new Date();
+      const differenceMs = deliveryDate - currentDate;
+      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24));
+    
+      if (differenceDays > 0) {
+        return differenceDays;
+      } else {
+        return "Delivery date has already passed";
+      }
     }
 
     function filterOrdersByRemainingDays (orders, remainingDays) {
@@ -357,3 +379,46 @@ async function customerfollowup (req, res) {
     errorResponse(res, 500, 'internal server error')
   }
 }
+
+
+// // // karigar Followup............................................................
+
+
+async function karigarfollowup(req, res) {
+  try {
+    const data1 = await orderModel.find({})
+    function getRemainingDays(karigar_delivery_date) {
+      const parts = karigar_delivery_date.split('-');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+    
+      const deliveryDate = new Date(year, month, day);
+      const currentDate = new Date();
+      const differenceMs = deliveryDate - currentDate;
+      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24));
+    
+      if (differenceDays > 0) {
+        return differenceDays;
+      } else {
+        return "Delivery date has already passed";
+      }
+    }
+
+    function filterOrdersByRemainingDays (orders, remainingDays) {
+      const value = orders.filter(
+        order => getRemainingDays(order.karigar_delivery_date) <= remainingDays
+      )
+      return value
+    }
+    const customerfollowup = filterOrdersByRemainingDays(data1, 1)
+    if (!customerfollowup) {
+      errorResponse(res, 400, 'Data not found')
+      return
+    }
+    successResponse(res, 'data get Successfully', customerfollowup)
+  } catch (error) {
+    errorResponse(res, 500, 'internal server error')
+  }
+}
+
