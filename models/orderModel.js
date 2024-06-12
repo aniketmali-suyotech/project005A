@@ -7,12 +7,12 @@ const orderSchema = new Schema({
     unique: true
   },
   OrderDate: String,
-  Purity: String,
-  Weight: String,
+  Purity: Number,
+  Weight: Number,
   Size: String,
   ProductName: String,
   Specification: String,
-  Quantity: String,
+  Quantity: Number,
   karigarName: {
     type: String,
     default: 'not set'

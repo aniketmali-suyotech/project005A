@@ -10,6 +10,8 @@ import karigarModel from '../models/karigarModel.js'
 
 const orderRouter = Router()
 orderRouter.get('/dash', getDashData)
+orderRouter.get('/followup', customerfollowup)
+orderRouter.get('/status', getstatus)
 orderRouter.post('/', getAllOrdersHandler)
 orderRouter.post('/create', addOrderHandler)
 orderRouter.post('/asign/:id', asignkarigarHandler)
@@ -184,7 +186,6 @@ async function updateOrderHandler (req, res) {
     const options = { new: true }
     if (
       !updateData.CustomerName ||
-      !updateData.OrderNumber ||
       !updateData.OrderDate ||
       !updateData.Purity ||
       !updateData.Weight ||
@@ -242,8 +243,8 @@ async function getDashData (req, res) {
     const client = await customerModel.find().count()
     const karigar = await karigarModel.find().count()
 
+    // // //customer followup filter date...............
     const data1 = await orderModel.find({})
-
     function getRemainingDays (customer_delivery_date) {
       const parts = customer_delivery_date.split('-')
       const day = parseInt(parts[0], 10)
@@ -256,7 +257,7 @@ async function getDashData (req, res) {
       const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
       return differenceDays
     }
-    
+
     function filterOrdersByRemainingDays (orders, remainingDays) {
       const value = orders.filter(
         order => getRemainingDays(order.customer_delivery_date) <= remainingDays
@@ -265,7 +266,7 @@ async function getDashData (req, res) {
     }
     const customerfollowup = filterOrdersByRemainingDays(data1, 1)
 
-   
+    // // //karigar_followup filter date...............
     function getRemainingDays2 (karigar_delivery_date) {
       const parts = karigar_delivery_date.split('-')
       const day = parseInt(parts[0], 10)
@@ -301,6 +302,58 @@ async function getDashData (req, res) {
     successResponse(res, 'date get successfully', data)
   } catch (error) {
     console.log('error', error)
+    errorResponse(res, 500, 'internal server error')
+  }
+}
+
+async function getstatus (req, res) {
+  try {
+    const data = {
+      final_status: [
+        'new-order',
+        'inprocess',
+        'completed',
+        'delivered',
+        'canceled'
+      ],
+      karigar_status: ['inprocess', 'completed', 'delivered'],
+      customer_status: ['inprocess', 'completed', 'delivered']
+    }
+    successResponse(res, 'data get Successfully', data)
+  } catch (error) {
+    errorResponse(res, 500, 'internal server error')
+  }
+}
+
+async function customerfollowup (req, res) {
+  try {
+    const data1 = await orderModel.find({})
+    function getRemainingDays (customer_delivery_date) {
+      const parts = customer_delivery_date.split('-')
+      const day = parseInt(parts[0], 10)
+      const month = parseInt(parts[1], 10) - 1
+      const year = parseInt(parts[2], 10)
+
+      const deliveryDate = new Date(year, month, day)
+      const currentDate = new Date()
+      const differenceMs = deliveryDate - currentDate
+      const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+      return differenceDays
+    }
+
+    function filterOrdersByRemainingDays (orders, remainingDays) {
+      const value = orders.filter(
+        order => getRemainingDays(order.customer_delivery_date) <= remainingDays
+      )
+      return value
+    }
+    const customerfollowup = filterOrdersByRemainingDays(data1, 1)
+    if (!customerfollowup) {
+      errorResponse(res, 400, 'Data not found')
+      return
+    }
+    successResponse(res, 'data get Successfully', customerfollowup)
+  } catch (error) {
     errorResponse(res, 500, 'internal server error')
   }
 }
