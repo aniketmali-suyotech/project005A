@@ -1,8 +1,8 @@
 import { Schema, model } from 'mongoose'
 
 const orderSchema = new Schema({
-  customerId: Number,
-  karigarId: Number,
+  customerId: String,
+  karigarId: String,
   CustomerName: String,
   OrderNumber: {
     type: String,
