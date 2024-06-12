@@ -23,10 +23,10 @@ app.use(morgan('dev'))
 //routers
 app.use('/assets/', express.static(path.join('.', 'uploads')))
 
-app.use('/api/orders',  authMiddleware, orderRouter)
-app.use('/api/clients',  authMiddleware,customerRouter)
-app.use('/api/karigars', authMiddleware, karigarRouter)
-app.use('/api/products', authMiddleware, productRouter)
+app.use('/api/orders',  orderRouter)
+app.use('/api/clients',  customerRouter)
+app.use('/api/karigars',  karigarRouter)
+app.use('/api/products',  productRouter)
 app.use('/api/users', authMiddleware, userRouter)
 app.use('/api/auth', authRouter)
 
