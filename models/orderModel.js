@@ -1,6 +1,8 @@
 import { Schema, model } from 'mongoose'
 
 const orderSchema = new Schema({
+  customerId: Number,
+  karigarId: Number,
   CustomerName: String,
   OrderNumber: {
     type: String,
@@ -51,3 +53,4 @@ const orderSchema = new Schema({
 
 const orderModel = model('orders', orderSchema)
 export default orderModel
+

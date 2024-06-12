@@ -9,23 +9,23 @@ import { errorResponse } from './serverResponse.js'
 //add super admin
 
 export async function AddSuperAdmin () {
-  const email = process.env.SUPERADMIN
+  const adminsstr = process.env.SUPERADMIN
+  const admins = adminsstr.split(',')
 
-  // Check if super admin with provided email already exists
-  const existingSuperAdmin = await userModel.findOne({ email })
+  for (const email of admins) {
+    const existingUser = await userModel.findOne({ email })
 
-  if (!existingSuperAdmin) {
-    // Create super admin if it doesn't exist
-    await userModel.create({
-      firstname: 'admin',
-      lastname: 'admin',
-      email: email,
-      mobile: '90876545',
-      password: bcryptPassword('1234')
-    })
-    console.log('Super admin created successfully.')
-  } else {
-    // console.log('Super admin already exists. Skipped creation.')
+    if (!existingUser) {
+      await userModel.create({
+        firstname: 'admin',
+        lastname: 'admin',
+        email: email,
+        mobile: '12345678',
+        password: bcryptPassword('1234')
+      })
+    } else {
+      console.log(`User already exists.`)
+    }
   }
 }
 
@@ -154,7 +154,6 @@ export function authMiddleware (req, res, next) {
   }
 }
 
-
 export function getRemainingDays (customer_delivery_date) {
   const parts = customer_delivery_date.split('-')
   const day = parseInt(parts[0], 10)
@@ -169,5 +168,3 @@ export function getRemainingDays (customer_delivery_date) {
   const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
   return differenceDays
 }
-
-
