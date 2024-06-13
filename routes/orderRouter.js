@@ -234,6 +234,30 @@ async function deleteOrderHandler (req, res) {
   successResponse(res, 'Deleted Successfully', data)
 }
 
+
+// async function deleteOrderHandler (req, res) {
+//   const {id } = req.params
+//   const {_id} = req.params
+//   const data = await orderModel.findByIdAndDelete(id)
+//   if (!data) {
+//     errorResponse(res, 500, 'internal server error')
+//     return
+//   }
+
+//   const order = await orderModel.findById({_id })
+//   console.log("order===",order)
+//   order.images.forEach(async image => {
+//     try {
+//       await fs.promises.unlink(image.path) // Delete image from filesystem
+//       console.log("images deleted successfully")
+//     } catch (err) {
+//       console.error('Error deleting image:', err)
+//     }
+//   })
+//   successResponse(res, 'Deleted Successfully', data)
+// }
+
+
 // // dashboard data............................
 
 async function getDashData (req, res) {

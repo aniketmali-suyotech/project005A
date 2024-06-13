@@ -4,7 +4,7 @@ import customerModel from '../models/customerModel.js'
 
 const customerRouter = Router()
 
-customerRouter.get('/getall', getAllClientsHandler)
+customerRouter.get('/:id?', getAllClientsHandler)
 customerRouter.post('/create', addClientHandler)
 customerRouter.post('/delete/:id', deleteClientHandler)
 customerRouter.post('/update/:id', updateClientHandler)
@@ -13,11 +13,21 @@ export default customerRouter
 
 async function getAllClientsHandler (req, res) {
   try {
-    const data = await customerModel.find({})
-    successResponse(res, 'success', data)
+    const { id } = req.params
+    if (id) {
+      const customer = await customerModel.findById(id)
+
+      if (!customer) {
+        return errorResponse(res, 404, 'Customer not found')
+      }
+      return successResponse(res, 'success', customer)
+    } else {
+      const data = await customerModel.find({})
+      return successResponse(res, 'success', data)
+    }
   } catch (error) {
-    console.log('error', error)
-    errorResponse(res, 500, 'internal server error')
+    console.error('Error:', error)
+    return errorResponse(res, 500, 'Internal server error')
   }
 }
 
