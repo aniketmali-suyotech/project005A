@@ -34,7 +34,7 @@ async function getAllClientsHandler (req, res) {
 async function addClientHandler (req, res) {
   try {
     const { Name, Mob, Address, City, PinCode } = req.body
-    if ((!Name, !Mob, !Address, !City, !PinCode)) {
+    if (!Name || !Mob || !Address || !City || !PinCode) {
       const message = 'addclient - some params missing'
       errorResponse(res, 400, message)
       return

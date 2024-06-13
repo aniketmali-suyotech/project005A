@@ -33,8 +33,8 @@ async function addKarigarHandler (req, res) {
   try {
     const { Name, Mob, CompName, Address, City, PinCode } = req.body
 
-    if ((!Name, !Mob, !CompName, !Address, !City, !PinCode)) {
-      const message = 'addorder - some params missing'
+    if ((!Name || !Mob || !CompName || !Address || !City || !PinCode)) {
+      const message = 'addkarigar - some params missing'
       errorResponse(res, 400, message)
       return
     }
