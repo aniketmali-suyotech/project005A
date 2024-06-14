@@ -24,7 +24,7 @@ async function getAllusersHandler (req, res) {
 async function adduserHandler (req, res) {
   try {
     const { firstname, lastname, role, email, mobile, password } = req.body
-    if ((!firstname, !lastname, !role, !email, !mobile, !password)) {
+    if (!firstname || !lastname || !role || !email || !mobile || !password) {
       const message = 'adduser - some params missing'
       errorResponse(res, 400, message)
       return

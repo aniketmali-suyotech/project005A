@@ -2,13 +2,24 @@ import { Router } from 'express'
 import { successResponse, errorResponse } from '../helpers/serverResponse.js'
 import orderModel from '../models/orderModel.js'
 import multer from 'multer'
-import fs from 'fs'
+import fs, { readFileSync } from 'fs'
 import path from 'path'
 import { GetOrderNumber } from '../helpers/helperFunction.js'
 import customerModel from '../models/customerModel.js'
 import karigarModel from '../models/karigarModel.js'
+import {
+  karigarfollowupfun,
+  customerfollowupfun,
+  getRemainingDaysCustomer,
+  getRemainingDaysKarigar
+} from '../helpers/helperFunction.js'
+import util from 'util'
+import { createPdf } from '../helpers/createPdf.js'
+
 
 const orderRouter = Router()
+orderRouter.get('/pdf/:orderId/:type', getallpdfHandler)
+orderRouter.get('/send/:id/:type', sendPDF)
 orderRouter.get('/dash', getDashData)
 orderRouter.get('/cfollowup', customerfollowup)
 orderRouter.get('/kfollowup', karigarfollowup)
@@ -21,6 +32,8 @@ orderRouter.post('/update/:id', updateOrderHandler)
 
 export default orderRouter
 
+
+// // Get all order...........................
 async function getAllOrdersHandler (req, res) {
   try {
     const { pageno, sortby, filterby = {}, search = '' } = req.body
@@ -75,6 +88,8 @@ async function getAllOrdersHandler (req, res) {
   }
 }
 
+//  // add order.............................
+
 async function addOrderHandler (req, res) {
   const upload = multer({
     storage: multer.diskStorage({
@@ -111,23 +126,38 @@ async function addOrderHandler (req, res) {
     } else {
       if (req.files && req.files.length > 0) {
         // console.log(req.files)
-        const images = req.files.map(file => `/assets/${file.filename}`)
-
-        console.log('images==', images)
-        const {
-          customerId,
-          CustomerName,
-          OrderDate,
-          Purity,
-          Weight,
-          Size,
-          ProductName,
-          Specification,
-          Quantity,
-          customer_delivery_date
-        } = req.body
-
         try {
+          const images = req.files.map(file => `/assets/${file.filename}`)
+          const {
+            customerId,
+            CustomerName,
+            OrderDate,
+            Purity,
+            Weight,
+            Size,
+            ProductName,
+            Specification,
+            Quantity,
+            customer_delivery_date
+          } = req.body
+
+          if (
+            (!customerId,
+            !CustomerName,
+            !OrderDate,
+            !Purity,
+            !Weight,
+            !Size,
+            !ProductName,
+            !Specification,
+            !Quantity,
+            !customer_delivery_date,
+            !images)
+          ) {
+            const message = 'addorder - some params missing'
+            errorResponse(res, 400, message)
+            return
+          }
           const OrderNumber = await GetOrderNumber()
           const data = await orderModel.create({
             OrderNumber,
@@ -155,6 +185,8 @@ async function addOrderHandler (req, res) {
     }
   })
 }
+
+// // asign karigar.................................
 
 async function asignkarigarHandler (req, res) {
   try {
@@ -184,6 +216,8 @@ async function asignkarigarHandler (req, res) {
     errorResponse(res, 500, 'internal server error')
   }
 }
+
+// // update order............................
 
 async function updateOrderHandler (req, res) {
   try {
@@ -225,38 +259,33 @@ async function updateOrderHandler (req, res) {
 }
 
 async function deleteOrderHandler (req, res) {
-  const { id } = req.params
-  const data = await orderModel.findByIdAndDelete(id)
-  if (!data) {
-    errorResponse(res, 500, 'internal server error')
-    return
+  try {
+    const { id } = req.params
+    const order = await orderModel.findById(id)
+    const images = order.images
+
+    images.forEach(async filename => {
+      const filenameWithoutPath = filename.replace('/assets/', '')
+      const filePath = path.join('./uploads', filenameWithoutPath)
+      try {
+        await fs.promises.unlink(filePath)
+        console.log('Deleted file:', filePath)
+      } catch (error) {
+        console.error('Error deleting file:', error)
+      }
+    })
+
+    const data = await orderModel.findByIdAndDelete(id)
+    if (!data) {
+      errorResponse(res, 500, 'Internal server error')
+      return
+    }
+    successResponse(res, 'Deleted Successfully', data)
+  } catch (error) {
+    console.error('Error deleting order:', error)
+    errorResponse(res, 500, 'Internal server error')
   }
-  successResponse(res, 'Deleted Successfully', data)
 }
-
-
-// async function deleteOrderHandler (req, res) {
-//   const {id } = req.params
-//   const {_id} = req.params
-//   const data = await orderModel.findByIdAndDelete(id)
-//   if (!data) {
-//     errorResponse(res, 500, 'internal server error')
-//     return
-//   }
-
-//   const order = await orderModel.findById({_id })
-//   console.log("order===",order)
-//   order.images.forEach(async image => {
-//     try {
-//       await fs.promises.unlink(image.path) // Delete image from filesystem
-//       console.log("images deleted successfully")
-//     } catch (err) {
-//       console.error('Error deleting image:', err)
-//     }
-//   })
-//   successResponse(res, 'Deleted Successfully', data)
-// }
-
 
 // // dashboard data............................
 
@@ -327,7 +356,7 @@ async function getstatus (req, res) {
 async function customerfollowup (req, res) {
   try {
     const orders = await orderModel.find({})
-    const filteredOrders = getRemainingDaysCustomer(orders, 1)
+    const filteredOrders = getRemainingDaysCustomer(orders)
     if (!filteredOrders) {
       errorResponse(res, 400, 'Data not found')
       return
@@ -354,94 +383,86 @@ async function karigarfollowup (req, res) {
   }
 }
 
-// // days calculated for followup.................
-
-function getRemainingDaysCustomer (orders) {
-  const currentDate = new Date()
-  return orders.filter(order => {
-    const parts = order.customer_delivery_date.split('-')
-    const day = parseInt(parts[0], 10)
-    const month = parseInt(parts[1], 10) - 1
-    const year = parseInt(parts[2], 10)
-
-    const deliveryDate = new Date(year, month, day)
-    const differenceMs = deliveryDate - currentDate
-    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-    console.log('difference days ==', differenceDays)
-
-    if (differenceDays <= 0) {
-      return order.final_status === 'inprocess'
+// // sending requests.........................
+async function sendPDF(req, res) {
+  try {
+    const { id, type } = req.params
+    const order = await orderModel.findById(id)
+    if (!order) {
+      return errorResponse(res, 404, 'order not found')
     }
 
-    return differenceDays < 2
-  })
+    if(order.karigarName == 'not set'){
+      return errorResponse(res, 404, 'karigar not set')
+    }
+
+    const data = {
+      orderId: order.OrderNumber,
+      customerName:
+        type === 'customer' ? order.CustomerName : order.karigarName,
+      orderDate: order.OrderDate,
+      productName: order.ProductName,
+      deliveryDate: order.customer_delivery_date,
+      purity: order.Purity.toString(),
+      weight: order.Weight.toString(),
+      size: order.Size,
+      quantity: order.Quantity.toString(),
+      specification: order.Specification
+    }
+
+    // Process order.images to get an array of file paths
+    const filePathArray = await Promise.all(
+      order.images.map(async filename => {
+        const filenameWithoutPath = filename.replace('/assets/', '')
+        const filePath = path.join('./uploads', filenameWithoutPath)
+        return filePath
+      })
+    )
+
+    const constantImages = filePathArray.map(filePath => {
+      // Determine file type based on file extension
+      const fileExtension = path.extname(filePath).toLowerCase()
+      let fileType = 'png' // Default to png if extension is not recognized
+
+      if (fileExtension === '.jpg' || fileExtension === '.jpeg') {
+        fileType = 'jpg'
+      } else if (fileExtension === '.png') {
+        fileType = 'png'
+      }
+
+      return {
+        path: filePath,
+        type: fileType
+      }
+    })
+
+    await createPdf(data, constantImages, type)
+
+    const filename = `./pdf/${order.OrderNumber}-${type}.pdf`
+
+    res.sendfile(filename)
+  } catch (error) {
+    console.error('Error:', error)
+    return errorResponse(res, 500, 'Internal server error')
+  }
 }
 
-function getRemainingDaysKarigar (orders) {
-  const currentDate = new Date()
+// get ids of folder
 
-  return orders.filter(order => {
-    const parts = order.karigar_delivery_date.split('-')
-    const day = parseInt(parts[0], 10)
-    const month = parseInt(parts[1], 10) - 1
-    const year = parseInt(parts[2], 10)
+async function getallpdfHandler (req, res) {
+  try {
+    const { orderId, type } = req.params
+    const testFolder = './pdf/'
 
-    const deliveryDate = new Date(year, month, day)
-    const differenceMs = deliveryDate - currentDate
-    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-    console.log('difference days ==', differenceDays)
-
-    if (differenceDays <= 0) {
-      return order.final_status === 'inprocess'
+    if (!orderId || !type) {
+      return errorResponse(res, 400, 'Missing orderId or type parameter')
     }
-    return differenceDays < 2
-  })
-}
 
-// // dashboard karigar followup............................
+    const filename = `./pdf/${orderId}-${type}.pdf`
 
-function karigarfollowupfun (orders) {
-  const currentDate = new Date()
-
-  const filteredOrders = orders.filter(order => {
-    const parts = order.karigar_delivery_date.split('-')
-    const day = parseInt(parts[0], 10)
-    const month = parseInt(parts[1], 10) - 1
-    const year = parseInt(parts[2], 10)
-
-    const deliveryDate = new Date(year, month, day)
-    const differenceMs = deliveryDate - currentDate
-    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-    console.log('difference days ==', differenceDays)
-
-    if (differenceDays <= 0) {
-      return order.final_status === 'inprocess'
-    }
-    return differenceDays < 2
-  })
-
-  return filteredOrders.length
-}
-
-// // dashboard customer followup.......................................
-function customerfollowupfun (orders) {
-  const currentDate = new Date()
-  const filteredOrders = orders.filter(order => {
-    const parts = order.customer_delivery_date.split('-')
-    const day = parseInt(parts[0], 10)
-    const month = parseInt(parts[1], 10) - 1
-    const year = parseInt(parts[2], 10)
-
-    const deliveryDate = new Date(year, month, day)
-    const differenceMs = deliveryDate - currentDate
-    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-    console.log('difference days ==', differenceDays)
-
-    if (differenceDays <= 0) {
-      return order.final_status === 'inprocess'
-    }
-    return differenceDays < 2
-  })
-
-  return filteredOrders.length
+    res.sendfile(filename)
+  } catch (error) {
+    console.log(error)
+    errorResponse(res, 500, 'Internal server error')
+  }
 }

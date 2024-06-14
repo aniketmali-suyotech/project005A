@@ -4,6 +4,7 @@ import {
   bcryptPassword,
   comparePassword,
   generateAccessToken,
+  getEmailOTP,
   getSessionData,
   validatetoken
 } from '../helpers/helperFunction.js'
@@ -12,7 +13,7 @@ import { errorResponse, successResponse } from '../helpers/serverResponse.js'
 const authRouter = Router()
 
 authRouter.post('/signin', signinHandler)
-authRouter.post('/sendotp', sendotpHandler)
+authRouter.post('/forgotpassword', forgetpasswordHandler)
 authRouter.post('/resetpassword', resetpasswordHandler)
 authRouter.post('/refreshtoken', refreshtokenHandler)
 
@@ -50,21 +51,19 @@ async function signinHandler (req, res) {
   }
 }
 
-//Send Otp
-async function sendotpHandler (req, res) {
+//forget password
+async function forgetpasswordHandler (req, res) {
   try {
     const { email } = req.body
-    // console.log("email", email);
     const usersotp = await userModel.findOne({ email })
     if (!usersotp) {
       errorResponse(res, 400, 'email id not found')
       return
     }
-    const tokenotp = Math.floor(100000 + Math.random() * 900000)
-    usersotp.tokenotp = tokenotp
+    usersotp.tokenotp = await getEmailOTP(email)
     await usersotp.save()
 
-    successResponse(res, 'OTP successfully sent', { tokenotp })
+    successResponse(res, 'OTP successfully sent')
   } catch (error) {
     console.log('error', error)
     errorResponse(res, 400, 'internal server error')
@@ -76,17 +75,15 @@ async function resetpasswordHandler (req, res) {
   try {
     const { email, tokenotp, password } = req.body
     const userReset = await userModel.findOne({ email })
-    
+
     if (!userReset) {
       errorResponse(res, 400, 'email id not found')
       return
     }
-
     if (tokenotp != userReset.tokenotp) {
       errorResponse(res, 400, 'invalid otp')
       return
     }
-
     userReset.password = bcryptPassword(password)
     userReset.save()
     successResponse(res, 'password set successfully')

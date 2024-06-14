@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from '../helpers/serverResponse.js'
 import karigarModel from '../models/karigarModel.js'
 
 const karigarRouter = Router()
+
 karigarRouter.get('/:id?', getAllKarigarHandler)
 karigarRouter.post('/create', addKarigarHandler)
 karigarRouter.post('/delete/:id', deletekarigarHandler)

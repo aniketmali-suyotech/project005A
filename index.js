@@ -14,21 +14,33 @@ import path from 'path'
 
 const app = express()
 const port = config.PORT
+const prod = config.ENV === 'prod'
 
 //middleware
 app.use(express.json())
-app.use(cors())
-app.use(morgan('dev'))
+if (!prod) {
+  app.use(morgan('dev'))
+  app.use(cors())
+}
 
 //routers
 app.use('/assets/', express.static(path.join('.', 'uploads')))
-
-app.use('/api/orders',  orderRouter)
-app.use('/api/clients',  customerRouter)
-app.use('/api/karigars',  karigarRouter)
-app.use('/api/products',  productRouter)
+app.use('/api/orders', authMiddleware, orderRouter)
+app.use('/api/clients', authMiddleware, customerRouter)
+app.use('/api/karigars', authMiddleware, karigarRouter)
+app.use('/api/products', authMiddleware, productRouter)
 app.use('/api/users', authMiddleware, userRouter)
 app.use('/api/auth', authRouter)
+
+//frontend routes
+if (prod) {
+  app.use(morgan('dev'))
+  app.use('/', express.static(config.FRONTEND_PATH))
+  app.get('/*', (req, res) => {
+    res.sendFile('index.html', { root: config.FRONTEND_PATH })
+  })
+  console.log('staring production server')
+}
 
 //not found
 app.use('*', (req, res) => {

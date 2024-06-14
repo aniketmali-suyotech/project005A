@@ -53,4 +53,3 @@ const orderSchema = new Schema({
 
 const orderModel = model('orders', orderSchema)
 export default orderModel
-

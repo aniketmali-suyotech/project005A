@@ -5,6 +5,8 @@ import crypto from 'crypto'
 import bcrypt, { compare } from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
 import { errorResponse } from './serverResponse.js'
+import config from '../config.js'
+import axios from 'axios'
 
 //add super admin
 
@@ -29,6 +31,22 @@ export async function AddSuperAdmin () {
   }
 }
 
+//get email otp
+export async function getEmailOTP (email) {
+  try {
+    const apikey = config.APIKEY
+    const emailerUrl = 'https://emailer.suyotech.com'
+    const resp = await axios.post(emailerUrl, {
+      apikey,
+      email
+    })
+    return resp.data.otp
+  } catch (error) {
+    console.log('otp error', error)
+    return null
+  }
+}
+
 //TOKEN GENERATION...............
 const secrectKey = crypto.randomBytes(48).toString('hex')
 export function generateAccessToken (id, email, role) {
@@ -45,10 +63,10 @@ export function generateAccessToken (id, email, role) {
     sessionid
   }
   const encoded_token = jwt.sign(accesstokenPayload, secrectKey, {
-    expiresIn: '5m'
+    expiresIn: '1h'
   })
   const public_token = jwt.sign(refreshtokenPayload, secrectKey, {
-    expiresIn: '1h'
+    expiresIn: '1d'
   })
   return { encoded_token, public_token }
 }
@@ -154,17 +172,121 @@ export function authMiddleware (req, res, next) {
   }
 }
 
-export function getRemainingDays (customer_delivery_date) {
-  const parts = customer_delivery_date.split('-')
-  const day = parseInt(parts[0], 10)
-  const month = parseInt(parts[1], 10) - 1
-  const year = parseInt(parts[2], 10)
+// // days calculated for followup.................
 
-  const deliveryDate = new Date(year, month, day)
+export function getRemainingDaysCustomer (orders) {
   const currentDate = new Date()
-  console.log('deliverydata,', deliveryDate)
-  console.log('currentDate', currentDate)
-  const differenceMs = deliveryDate - currentDate
-  const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
-  return differenceDays
+  return orders.filter(order => {
+    const parts = order.customer_delivery_date.split('-')
+    const day = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10) - 1
+    const year = parseInt(parts[2], 10)
+
+    const deliveryDate = new Date(year, month, day)
+    const differenceMs = deliveryDate - currentDate
+    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+    console.log('difference days ==', differenceDays)
+
+    if (differenceDays <= 0) {
+      return order.final_status === 'inprocess'
+    }
+
+    if (
+      order.final_status === 'delivered' ||
+      order.final_status === 'cancelled'
+    ) {
+      return false
+    }
+
+    return differenceDays < 2
+  })
+}
+
+export function getRemainingDaysKarigar (orders) {
+  const currentDate = new Date()
+
+  return orders.filter(order => {
+    const parts = order.karigar_delivery_date.split('-')
+    const day = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10) - 1
+    const year = parseInt(parts[2], 10)
+
+    const deliveryDate = new Date(year, month, day)
+    const differenceMs = deliveryDate - currentDate
+    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+    console.log('difference days ==', differenceDays)
+
+    if (differenceDays <= 0) {
+      return order.final_status === 'inprocess'
+    }
+
+    if (
+      order.final_status === 'delivered' ||
+      order.final_status === 'cancelled'
+    ) {
+      return false
+    }
+    return differenceDays < 2
+  })
+}
+
+// // dashboard karigar followup............................
+
+export function karigarfollowupfun (orders) {
+  const currentDate = new Date()
+
+  const filteredOrders = orders.filter(order => {
+    const parts = order.karigar_delivery_date.split('-')
+    const day = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10) - 1
+    const year = parseInt(parts[2], 10)
+
+    const deliveryDate = new Date(year, month, day)
+    const differenceMs = deliveryDate - currentDate
+    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+    console.log('difference days ==', differenceDays)
+
+    if (differenceDays <= 0) {
+      return order.final_status === 'inprocess'
+    }
+    if (
+      order.final_status === 'delivered' ||
+      order.final_status === 'cancelled'
+    ) {
+      return false
+    }
+    return differenceDays < 2
+  })
+
+  return filteredOrders.length
+}
+
+// // dashboard customer followup.......................................
+export function customerfollowupfun (orders) {
+  const currentDate = new Date()
+  const filteredOrders = orders.filter(order => {
+    const parts = order.customer_delivery_date.split('-')
+    const day = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10) - 1
+    const year = parseInt(parts[2], 10)
+
+    const deliveryDate = new Date(year, month, day)
+    const differenceMs = deliveryDate - currentDate
+    const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+    console.log('difference days ==', differenceDays)
+
+    if (differenceDays <= 0) {
+      return order.final_status === 'inprocess'
+    }
+
+    if (
+      order.final_status === 'delivered' ||
+      order.final_status === 'cancelled'
+    ) {
+      return false
+    }
+    return differenceDays < 2
+  })
+
+  return filteredOrders.length
 }
