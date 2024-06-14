@@ -310,10 +310,10 @@ async function getDashData (req, res) {
     const customerfollowup = customerfollowupfun(data1)
     const karigarfollowup = karigarfollowupfun(data1)
 
-    // const recentlyAdded = await orderModel
-    //   .find({})
-    //   .sort({ createdAt: -1 })
-    //   .limit(10)
+    const recentlyAdded = await orderModel
+      .find({})
+      .sort({ OrderNumber: -1 })
+      .limit(10)
 
     const data = {
       newOrder,
@@ -324,7 +324,7 @@ async function getDashData (req, res) {
       karigar,
       customerfollowup,
       karigarfollowup,
-     
+      recentlyAdded
     }
 
     successResponse(res, 'date get successfully', data)

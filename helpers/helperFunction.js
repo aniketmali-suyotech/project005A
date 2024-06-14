@@ -202,6 +202,32 @@ export function getRemainingDaysCustomer (orders) {
   })
 }
 
+// export function getRemainingDaysCustomer (orders) {
+//   const currentDate = new Date()
+//   console.log('currentdate==', currentDate)
+//   return orders.filter(order => {
+//     console.log('calculated days==', order.customer_delivery_date)
+//     const deliveryDate = new Date(order.customer_delivery_date)
+//     const differenceMs = deliveryDate - currentDate
+//     const differenceDays = Math.ceil(differenceMs / (1000 * 60 * 60 * 24))
+//     console.log('difference days ==', differenceDays)
+
+//     if (differenceDays <= 0) {
+//       return order.final_status === 'inprocess'
+//     }
+
+//     if (
+//       order.final_status === 'delivered' ||
+//       order.final_status === 'cancelled'
+//     ) {
+//       return false
+//     }
+
+//     return differenceDays < 2
+//   })
+// }
+
+
 export function getRemainingDaysKarigar (orders) {
   const currentDate = new Date()
 
