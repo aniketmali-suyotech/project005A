@@ -317,7 +317,7 @@ async function getDashData (req, res) {
     const orders = await orderModel.find({})
     const data5 = getRemainingDaysCustomer(orders)
     const data6 = getRemainingDaysKarigar(orders)
-    const followup = ([...data5, ...data6]).slice(0,10)
+    const followup = [...data5, ...data6].slice(0, 10)
     const data = {
       newOrder,
       inProcess,
@@ -400,7 +400,7 @@ async function sendPDF (req, res) {
       return errorResponse(res, 404, 'order not found')
     }
 
-    if (order.karigarName == 'not set') {
+    if ( type == 'karigar' && order.karigarName == 'not set') {
       return errorResponse(res, 404, 'karigar not set')
     }
 
@@ -447,14 +447,9 @@ async function sendPDF (req, res) {
     await createPdf(data, constantImages, type)
 
     const filename = `./pdf/${order.OrderNumber}-${type}.pdf`
-
-    // Encoding the filename to Base64
     const base64Filename = Buffer.from(filename).toString('base64')
 
-    // Sending the Base64-encoded filename as a response
-    //  res.send(base64Filename)
-
-    successResponse(res, 'data get Successfully', base64Filename)
+    successResponse(res, 'data get Successfully', {base64Filename , filename} )
   } catch (error) {
     console.error('Error:', error)
     return errorResponse(res, 500, 'Internal server error')
