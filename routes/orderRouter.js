@@ -16,7 +16,6 @@ import {
 import util from 'util'
 import { createPdf } from '../helpers/createPdf.js'
 
-
 const orderRouter = Router()
 orderRouter.get('/pdf/:orderId/:type', getallpdfHandler)
 orderRouter.get('/send/:id/:type', sendPDF)
@@ -31,7 +30,6 @@ orderRouter.post('/delete/:id', deleteOrderHandler)
 orderRouter.post('/update/:id', updateOrderHandler)
 
 export default orderRouter
-
 
 // // Get all order...........................
 async function getAllOrdersHandler (req, res) {
@@ -66,7 +64,7 @@ async function getAllOrdersHandler (req, res) {
     }
     const sortBy =
       sortby && typeof sortby === 'object' && Object.keys(sortby).length === 0
-        ? { OrderNumber: 1 }
+        ? { OrderNumber: -1 }
         : sortby
 
     const data = await orderModel
@@ -312,6 +310,11 @@ async function getDashData (req, res) {
     const customerfollowup = customerfollowupfun(data1)
     const karigarfollowup = karigarfollowupfun(data1)
 
+    // const recentlyAdded = await orderModel
+    //   .find({})
+    //   .sort({ createdAt: -1 })
+    //   .limit(10)
+
     const data = {
       newOrder,
       inProcess,
@@ -320,7 +323,8 @@ async function getDashData (req, res) {
       client,
       karigar,
       customerfollowup,
-      karigarfollowup
+      karigarfollowup,
+     
     }
 
     successResponse(res, 'date get successfully', data)
@@ -384,7 +388,7 @@ async function karigarfollowup (req, res) {
 }
 
 // // sending requests.........................
-async function sendPDF(req, res) {
+async function sendPDF (req, res) {
   try {
     const { id, type } = req.params
     const order = await orderModel.findById(id)
@@ -392,7 +396,7 @@ async function sendPDF(req, res) {
       return errorResponse(res, 404, 'order not found')
     }
 
-    if(order.karigarName == 'not set'){
+    if (order.karigarName == 'not set') {
       return errorResponse(res, 404, 'karigar not set')
     }
 
