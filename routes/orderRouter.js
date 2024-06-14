@@ -314,7 +314,10 @@ async function getDashData (req, res) {
       .find({})
       .sort({ OrderNumber: -1 })
       .limit(10)
-
+    const orders = await orderModel.find({})
+    const data5 = getRemainingDaysCustomer(orders)
+    const data6 = getRemainingDaysKarigar(orders)
+    const followup = ([...data5, ...data6]).slice(0,10)
     const data = {
       newOrder,
       inProcess,
@@ -324,7 +327,8 @@ async function getDashData (req, res) {
       karigar,
       customerfollowup,
       karigarfollowup,
-      recentlyAdded
+      recentlyAdded,
+      followup
     }
 
     successResponse(res, 'date get successfully', data)
@@ -444,7 +448,13 @@ async function sendPDF (req, res) {
 
     const filename = `./pdf/${order.OrderNumber}-${type}.pdf`
 
-    res.sendfile(filename)
+    // Encoding the filename to Base64
+    const base64Filename = Buffer.from(filename).toString('base64')
+
+    // Sending the Base64-encoded filename as a response
+    //  res.send(base64Filename)
+
+    successResponse(res, 'data get Successfully', base64Filename)
   } catch (error) {
     console.error('Error:', error)
     return errorResponse(res, 500, 'Internal server error')
