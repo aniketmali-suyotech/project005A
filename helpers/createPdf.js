@@ -210,6 +210,8 @@ export async function createPdf (data, constantImages, type) {
     writeFileSync(outputPdfPath, pdfBytes)
 
     console.log('PDF created successfully')
+
+    return outputPdfPath;
   } catch (error) {
     console.log('Error creating PDF:', error)
   }

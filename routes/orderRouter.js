@@ -444,12 +444,20 @@ async function sendPDF (req, res) {
       }
     })
 
-    await createPdf(data, constantImages, type)
+    const pdfPath = await createPdf(data, constantImages, type)
+     
+    // console.log("pdf path=====", pdfPath)
+    //.....................................
+    const pdfBytes = fs.readFileSync(pdfPath);
 
-    const filename = `./pdf/${order.OrderNumber}-${type}.pdf`
-    const base64Filename = Buffer.from(filename).toString('base64')
+    // Convert PDF to base64 encoded string
+    const pdfBase64 = pdfBytes.toString('base64');
 
-    successResponse(res, 'data get Successfully', {base64Filename , filename} )
+    // Remove the PDF file after reading if needed (optional)
+    //fs.unlinkSync(pdfPath); 
+    // Respond with the base64 encoded PDF
+    successResponse(res, 'PDF generated successfully', { pdfBase64 });
+
   } catch (error) {
     console.error('Error:', error)
     return errorResponse(res, 500, 'Internal server error')
