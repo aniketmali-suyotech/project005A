@@ -400,7 +400,7 @@ async function sendPDF (req, res) {
       return errorResponse(res, 404, 'order not found')
     }
 
-    if ( type == 'karigar' && order.karigarName == 'not set') {
+    if (type == 'karigar' && order.karigarName == 'not set') {
       return errorResponse(res, 404, 'karigar not set')
     }
 
@@ -445,19 +445,18 @@ async function sendPDF (req, res) {
     })
 
     const pdfPath = await createPdf(data, constantImages, type)
-     
+    const filename = `./pdf/${order.OrderNumber}-${type}.pdf`
     // console.log("pdf path=====", pdfPath)
     //.....................................
-    const pdfBytes = fs.readFileSync(pdfPath);
+    const pdfBytes = fs.readFileSync(pdfPath)
 
     // Convert PDF to base64 encoded string
-    const pdfBase64 = pdfBytes.toString('base64');
+    const pdfBase64 = pdfBytes.toString('base64')
 
     // Remove the PDF file after reading if needed (optional)
-    //fs.unlinkSync(pdfPath); 
+    //fs.unlinkSync(pdfPath);
     // Respond with the base64 encoded PDF
-    successResponse(res, 'PDF generated successfully', { pdfBase64 });
-
+    successResponse(res, 'PDF generated successfully', { pdfBase64, filename })
   } catch (error) {
     console.error('Error:', error)
     return errorResponse(res, 500, 'Internal server error')
